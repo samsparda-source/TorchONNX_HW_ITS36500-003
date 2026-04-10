@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diabetes Progression Predictor - PyTorch/ONNX Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/ort.min.js"></script>
+    <style>
+        :root {
+            --color-bg: #f7f6f2;
+            --color-text: #28251d;
+            --color-primary: #01696f;
+            --radius-md: 0.5rem;
+            --space-4: 1rem;
+            --space-6: 1.5rem;
+        }
+        [data-theme="dark"] {
+            --color-bg: #171614;
+            --color-text: #cdccca;
+            --color-primary: #4f98a3;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 900px; margin: 0 auto; padding: 2rem;
+            color: var(--color-text); background: var(--color-bg); line-height: 1.6;
+        }
+        h1 { color: var(--color-primary); font-size: clamp(2rem, 5vw, 3rem); margin-bottom: 1rem; }
+        .intro { background: rgba(1,105,111,0.05); padding: 1.5rem; border-radius: var(--radius-md); margin-bottom: 2rem; }
+        .input-group { margin: 1rem 0; }
+        label { display: block; font-weight: 500; margin-bottom: 0.5rem; font-size: 0.95rem; }
+        input[type="number"] {
+            width: 100%; padding: 0.75rem; border: 1px solid #d4d1ca; border-radius: var(--radius-md);
+            font-size: 1rem; transition: border-color 0.2s;
+        }
+        input:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(1,105,111,0.1); }
+        button {
+            background: var(--color-primary); color: white; padding: 1rem 2.5rem; border: none;
+            border-radius: var(--radius-md); font-size: 1.1rem; font-weight: 500; cursor: pointer;
+            transition: all 0.2s; width: 100%; margin-top: 1rem;
+        }
+        button:hover:not(:disabled) { background: #0c4e54; transform: translateY(-1px); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        #result {
+            margin-top: 2rem; padding: 2rem; background: rgba(1,105,111,0.08);
+            border: 1px solid rgba(1,105,111,0.2); border-radius: var(--radius-md);
+            font-size: 1.3rem; font-weight: 600; display: none;
+        }
+        #status { margin: 1rem 0; padding: 1rem; background: #f0f8f0; border-radius: var(--radius-md); }
+        .theme-toggle { position: absolute; top: 1rem; right: 1rem; background: none; border: 1px solid #d4d1ca; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; }
+        @media (max-width: 768px) { body { padding: 1rem; } }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" data-theme-toggle aria-label="Toggle dark mode" title="Toggle dark mode">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+    </button>
+    
+    <main>
+        <h1>Diabetes Progression Predictor</h1>
+        <div class="intro">
+            <p><strong>PyTorch Deep Neural Network</strong> → ONNX → Browser Deployment</p>
+            <p>Enter <em>normalized feature values</em> (-0.3 to 0.3 range) to predict disease progression score. Trained on Pima Indians Diabetes dataset.</p>
+        </div>
+        
+        <form id="predictForm">
+            <div class="input-group">
+                <label for="age">Age (normalized)</label>
+                <input type="number" id="age" step="0.01" min="-0.3" max="0.3" value="0">
+            </div>
+            <div class="input-group">
+                <label for="sex">Sex (normalized)</label>
+                <input type="number" id="sex" step="0.01" min="-0.3" max="0.3" value="0">
+            </div>
+            <div class="input-group">
+                <label for="bmi">BMI (normalized)</label>
+                <input type="number" id="bmi" step="0.01" min="-0.3" max="0.3" value="0">
+            </div>
+            <div class="input-group">
+                <label for="bp">Blood Pressure (normalized)</label>
+                <input type="number" id="bp" step="0.01" min="-0.3" max="0.3" value="0">
+            </div>
+            <div class="input-group">
+                <label for="s1">S1 (normalized)</label>
+                <input type="number" id="s1" step="0.01" min="-0.3" max="0.3" value="0">
+            </div>
+            <div class="input-group">
+                <label for="s2">S2 (normalized)</label>
+                <input type="number" id="s2" step="0.01" min="-0.3" max="0.3" value="0">
+            </div>
+            <div class="input-group">
+                <label for="s3">S3 (normalized)</label>
+                <input type="number" id="s3" step="0.01" min="-0.3" max="0.3" value="0">
+            </div>
+            <div class="input-group">
+                <label for="s4">S4 (normalized)</label>
+                <input type="number" id="s4" step="0.01" min="-0.3" max="0.3" value="0">
+            </div>
+            <div class="input-group">
+                <label for="s5">S5 (normalized)</label>
+                <input type="number" id="s5" step="0.01" min="-0.3" max="0.3" value="0">
+            </div>
+            <div class="input-group">
+                <label for="s6">S6 (normalized)</label>
+                <input type="number" id="s6" step="0.01" min="-0.3" max="0.3" value="0">
+            </div>
+            <button type="submit" id="predictBtn"> Predict Progression Score</button>
+        </form>
+        
+        <div id="status" style="display: none;"></div>
+        <div id="result"></div>
+    </main>
+
+    <script>
+        // Dark mode toggle
+        (function() {
+            const toggle = document.querySelector('[data-theme-toggle]');
+            const html = document.documentElement;
+            let theme = localStorage.getItem('theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            html.setAttribute('data-theme', theme);
+            toggle.addEventListener('click', () => {
+                theme = theme === 'dark' ? 'light' : 'dark';
+                html.setAttribute('data-theme', theme);
+                localStorage.setItem('theme', theme);
+            });
+        })();
+
+        let session = null;
+        const status = document.getElementById('status');
+        const result = document.getElementById('result');
+        const predictBtn = document.getElementById('predictBtn');
+        const predictForm = document.getElementById('predictForm');
+
+        async function init() {
+            try {
+                status.textContent = 'Loading ONNX model...';
+                status.style.display = 'block';
+                predictBtn.disabled = true;
+                
+                session = await ort.InferenceSession.create('./diabetes_mlp.onnx', {
+                    executionProviders: ['wasm']
+                });
+                
+                status.textContent = 'Model loaded! (4-layer DNN, Test MSE ~0.14)';
+                status.style.background = '#f0f8f0';
+                predictBtn.disabled = false;
+                predictBtn.textContent = 'Predict Progression Score';
+            } catch (e) {
+                status.textContent = `Error: ${e.message}`;
+                status.style.background = '#fee';
+                console.error(e);
+            }
+        }
+
+        predictForm.onsubmit = async (e) => {
+            e.preventDefault();
+            if (!session) {
+                status.textContent = 'Model not loaded';
+                return;
+            }
+
+            const inputs = [
+                parseFloat(document.getElementById('age').value),
+                parseFloat(document.getElementById('sex').value),
+                parseFloat(document.getElementById('bmi').value),
+                parseFloat(document.getElementById('bp').value),
+                parseFloat(document.getElementById('s1').value),
+                parseFloat(document.getElementById('s2').value),
+                parseFloat(document.getElementById('s3').value),
+                parseFloat(document.getElementById('s4').value),
+                parseFloat(document.getElementById('s5').value),
+                parseFloat(document.getElementById('s6').value)
+            ];
+
+            try {
+                predictBtn.disabled = true;
+                predictBtn.textContent = 'Predicting...';
+
+                const tensor = new ort.Tensor('float32', new Float32Array(inputs), [1, 10]);
+                const feeds = { input: tensor };
+                const results = await session.run(feeds);
+                const score = results.output.data[0];
+
+                result.innerHTML = `
+                    <strong>Predicted Progression Score:</strong> <span style="color: var(--color-primary); font-size: 1.5em;">${score.toFixed(2)}</span><br>
+                    <small>(Higher = worse disease progression. Trained MSE: 0.14)</small>
+                `;
+                result.style.display = 'block';
+            } catch (e) {
+                result.innerHTML = `<strong>Error:</strong> ${e.message}`;
+                result.style.background = '#fee';
+            } finally {
+                predictBtn.disabled = false;
+                predictBtn.textContent = 'Predict Progression Score';
+            }
+        };
+
+        // Auto-init
+        init();
+    </script>
+</body>
+</html>
