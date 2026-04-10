@@ -11,4 +11,4 @@ https://samsarda-source.github.io/TorchONNX_HW_ITS36500-003/
 ## Files
 - `diabetes_mlp.onnx` - Trained model
 - `diabetes.csv` - Dataset
-- `index.html` - Browser deployment
+- `docs/index.html` - Browser deployment
