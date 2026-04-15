@@ -6,7 +6,7 @@
 - Test MSE: 0.14
 
 ## Live Demo
-https://samsarda-source.github.io/TorchONNX_HW_ITS36500-003/
+https://samsparda-source.github.io/TorchONNX_HW_ITS36500-003/
 
 ## Files
 - `diabetes_mlp.onnx` - Trained model
